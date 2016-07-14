@@ -1,0 +1,3 @@
+[submodule "QBImagePicker/submodule/AMPhotoLibrary"]
+	path = QBImagePicker/submodule/AMPhotoLibrary
+	url = git@github.com:m221539/AMPhotoLibrary.git
