@@ -13,9 +13,9 @@
 
 @interface QBVideoIndicatorView : UIView
 
-@property (nonatomic, weak) IBOutlet UILabel *timeLabel;
-@property (nonatomic, weak) IBOutlet QBVideoIconView *videoIcon;
-@property (nonatomic, weak) IBOutlet QBSlomoIconView *slomoIcon;
+@property (nonatomic, strong) UILabel *timeLabel;
+@property (nonatomic, strong) QBVideoIconView *videoIcon;
+@property (nonatomic, strong) QBSlomoIconView *slomoIcon;
 
 
 @end

@@ -7,19 +7,18 @@
 //
 
 #import <UIKit/UIKit.h>
-#import <Photos/Photos.h>
 
-@class QBImagePickerController;
+@class QBImagePickerController, AMPhotoAsset;
 
 @protocol QBImagePickerControllerDelegate <NSObject>
 
 @optional
-- (void)qb_imagePickerController:(QBImagePickerController *)imagePickerController didFinishPickingAssets:(NSArray *)assets;
+- (void)qb_imagePickerController:(QBImagePickerController *)imagePickerController didFinishPickingAssets:(NSArray<AMPhotoAsset *> *)assets;
 - (void)qb_imagePickerControllerDidCancel:(QBImagePickerController *)imagePickerController;
 
-- (BOOL)qb_imagePickerController:(QBImagePickerController *)imagePickerController shouldSelectAsset:(PHAsset *)asset;
-- (void)qb_imagePickerController:(QBImagePickerController *)imagePickerController didSelectAsset:(PHAsset *)asset;
-- (void)qb_imagePickerController:(QBImagePickerController *)imagePickerController didDeselectAsset:(PHAsset *)asset;
+- (BOOL)qb_imagePickerController:(QBImagePickerController *)imagePickerController shouldSelectAsset:(AMPhotoAsset *)asset;
+- (void)qb_imagePickerController:(QBImagePickerController *)imagePickerController didSelectAsset:(AMPhotoAsset *)asset;
+- (void)qb_imagePickerController:(QBImagePickerController *)imagePickerController didDeselectAsset:(AMPhotoAsset *)asset;
 
 @end
 
@@ -33,9 +32,8 @@ typedef NS_ENUM(NSUInteger, QBImagePickerMediaType) {
 
 @property (nonatomic, weak) id<QBImagePickerControllerDelegate> delegate;
 
-@property (nonatomic, strong, readonly) NSMutableOrderedSet *selectedAssets;
+@property (nonatomic, strong, readonly) NSMutableOrderedSet<AMPhotoAsset *> *selectedAssets;
 
-@property (nonatomic, copy) NSArray *assetCollectionSubtypes;
 @property (nonatomic, assign) QBImagePickerMediaType mediaType;
 
 @property (nonatomic, assign) BOOL allowsMultipleSelection;

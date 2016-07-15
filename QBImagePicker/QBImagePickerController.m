@@ -28,13 +28,7 @@
     
     if (self) {
         // Set default values
-        self.assetCollectionSubtypes = @[
-                                         @(PHAssetCollectionSubtypeSmartAlbumUserLibrary),
-                                         @(PHAssetCollectionSubtypeAlbumMyPhotoStream),
-                                         @(PHAssetCollectionSubtypeSmartAlbumPanoramas),
-                                         @(PHAssetCollectionSubtypeSmartAlbumVideos),
-                                         @(PHAssetCollectionSubtypeSmartAlbumBursts)
-                                         ];
+
         self.minimumNumberOfSelection = 1;
         self.numberOfColumnsInPortrait = 4;
         self.numberOfColumnsInLandscape = 7;
@@ -60,18 +54,18 @@
 
 - (void)setUpAlbumsViewController
 {
-    // Add QBAlbumsViewController as a child
-    UIStoryboard *storyboard = [UIStoryboard storyboardWithName:@"QBImagePicker" bundle:self.assetBundle];
-    UINavigationController *navigationController = [storyboard instantiateViewControllerWithIdentifier:@"QBAlbumsNavigationController"];
+    UINavigationController *naviCtrler = [[UINavigationController alloc] initWithRootViewController:[[QBAlbumsViewController alloc] initWithStyle:UITableViewStylePlain]];
     
-    [self addChildViewController:navigationController];
+    naviCtrler.navigationBar.translucent = YES;
     
-    navigationController.view.frame = self.view.bounds;
-    [self.view addSubview:navigationController.view];
+    [self addChildViewController:naviCtrler];
     
-    [navigationController didMoveToParentViewController:self];
+    naviCtrler.view.frame = self.view.bounds;
+    [self.view addSubview:naviCtrler.view];
     
-    self.albumsNavigationController = navigationController;
+    [naviCtrler didMoveToParentViewController:self];
+    
+    self.albumsNavigationController = naviCtrler;
 }
 
 @end

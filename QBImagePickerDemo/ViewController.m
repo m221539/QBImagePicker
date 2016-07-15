@@ -8,6 +8,8 @@
 
 #import "ViewController.h"
 #import <QBImagePicker/QBImagePicker.h>
+#import <Photos/Photos.h>
+#import "AMPhotoAsset_Private.h"
 
 @interface ViewController () <QBImagePickerControllerDelegate>
 
@@ -18,6 +20,17 @@
 - (void)viewDidLoad
 {
     [super viewDidLoad];
+    
+    if ([PHPhotoLibrary authorizationStatus] == PHAuthorizationStatusNotDetermined || [PHPhotoLibrary authorizationStatus] == PHAuthorizationStatusDenied) {
+        
+        [PHPhotoLibrary requestAuthorization:^(PHAuthorizationStatus status) {
+            
+            if (status == PHAuthorizationStatusAuthorized) {
+                
+                // TODO:...
+            }
+        }];
+    }
 }
 
 
@@ -48,7 +61,8 @@
 
             case 4:
                 imagePickerController.maximumNumberOfSelection = 2;
-                [imagePickerController.selectedAssets addObject:[PHAsset fetchAssetsWithOptions:nil].lastObject];
+                
+                [imagePickerController.selectedAssets addObject:[AMPhotoAsset photoAssetWithPHAsset:[PHAsset fetchAssetsWithOptions:nil].lastObject]];
                 break;
                 
             default:

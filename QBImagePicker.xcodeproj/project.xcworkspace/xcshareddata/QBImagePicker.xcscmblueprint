@@ -1,0 +1,30 @@
+{
+  "DVTSourceControlWorkspaceBlueprintPrimaryRemoteRepositoryKey" : "69F1448B77FC743D1F230DA345B90A242F7718B3",
+  "DVTSourceControlWorkspaceBlueprintWorkingCopyRepositoryLocationsKey" : {
+
+  },
+  "DVTSourceControlWorkspaceBlueprintWorkingCopyStatesKey" : {
+    "9F58F56B6F3E2EB82D55CF93CED1F3FBEEE04ECF" : 0,
+    "69F1448B77FC743D1F230DA345B90A242F7718B3" : 0
+  },
+  "DVTSourceControlWorkspaceBlueprintIdentifierKey" : "170C1B83-AB68-4BFE-9BE2-F51078DB678B",
+  "DVTSourceControlWorkspaceBlueprintWorkingCopyPathsKey" : {
+    "9F58F56B6F3E2EB82D55CF93CED1F3FBEEE04ECF" : "QBImagePicker\/QBImagePicker\/submodule\/AMPhotoLibrary\/",
+    "69F1448B77FC743D1F230DA345B90A242F7718B3" : "QBImagePicker\/"
+  },
+  "DVTSourceControlWorkspaceBlueprintNameKey" : "QBImagePicker",
+  "DVTSourceControlWorkspaceBlueprintVersion" : 204,
+  "DVTSourceControlWorkspaceBlueprintRelativePathToProjectKey" : "QBImagePicker.xcodeproj",
+  "DVTSourceControlWorkspaceBlueprintRemoteRepositoriesKey" : [
+    {
+      "DVTSourceControlWorkspaceBlueprintRemoteRepositoryURLKey" : "github.com:m221539\/QBImagePicker.git",
+      "DVTSourceControlWorkspaceBlueprintRemoteRepositorySystemKey" : "com.apple.dt.Xcode.sourcecontrol.Git",
+      "DVTSourceControlWorkspaceBlueprintRemoteRepositoryIdentifierKey" : "69F1448B77FC743D1F230DA345B90A242F7718B3"
+    },
+    {
+      "DVTSourceControlWorkspaceBlueprintRemoteRepositoryURLKey" : "github.com:m221539\/AMPhotoLibrary.git",
+      "DVTSourceControlWorkspaceBlueprintRemoteRepositorySystemKey" : "com.apple.dt.Xcode.sourcecontrol.Git",
+      "DVTSourceControlWorkspaceBlueprintRemoteRepositoryIdentifierKey" : "9F58F56B6F3E2EB82D55CF93CED1F3FBEEE04ECF"
+    }
+  ]
+}

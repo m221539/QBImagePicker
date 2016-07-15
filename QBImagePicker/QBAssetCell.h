@@ -12,8 +12,8 @@
 
 @interface QBAssetCell : UICollectionViewCell
 
-@property (weak, nonatomic) IBOutlet UIImageView *imageView;
-@property (weak, nonatomic) IBOutlet QBVideoIndicatorView *videoIndicatorView;
+@property (nonatomic, strong) UIImageView *imageView;
+@property (nonatomic, strong) QBVideoIndicatorView *videoIndicatorView;
 
 @property (nonatomic, assign) BOOL showsOverlayViewWhenSelected;
 

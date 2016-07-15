@@ -10,10 +10,16 @@
 
 @implementation QBCheckmarkView
 
-- (void)awakeFromNib
+- (instancetype)init {
+    if (self = [super init]) {
+        [self commonInit];
+    }
+    return self;
+}
+
+- (void)commonInit
 {
-    [super awakeFromNib];
-    
+    self.backgroundColor = [UIColor clearColor];
     // Set default values
     self.borderWidth = 1.0;
     self.checkmarkLineWidth = 1.2;

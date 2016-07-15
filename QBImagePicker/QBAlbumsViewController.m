@@ -7,7 +7,8 @@
 //
 
 #import "QBAlbumsViewController.h"
-#import <Photos/Photos.h>
+
+#import "AMPhotoLibrary.h"
 
 // Views
 #import "QBAlbumCell.h"
@@ -15,6 +16,9 @@
 // ViewControllers
 #import "QBImagePickerController.h"
 #import "QBAssetsViewController.h"
+
+
+static NSString *kAlbumCellIdentifier = @"kAlbumCellIdentifier";
 
 static CGSize CGSizeScale(CGSize size, CGFloat scale) {
     return CGSizeMake(size.width * scale, size.height * scale);
@@ -26,32 +30,37 @@ static CGSize CGSizeScale(CGSize size, CGFloat scale) {
 
 @end
 
-@interface QBAlbumsViewController () <PHPhotoLibraryChangeObserver>
+@interface QBAlbumsViewController () <AMPhotoLibraryChangeObserver>
 
-@property (nonatomic, strong) IBOutlet UIBarButtonItem *doneButton;
+@property (nonatomic, strong) UIBarButtonItem *doneButton;
 
-@property (nonatomic, copy) NSArray *fetchResults;
-@property (nonatomic, copy) NSArray *assetCollections;
+@property (nonatomic, strong) NSArray<AMPhotoAlbum *> *photoAlbums;
 
 @end
 
 @implementation QBAlbumsViewController
 
+
+- (void)dealloc {
+    [[AMPhotoLibrary sharedPhotoLibrary] unregisterChangeObserver:self];
+}
+
 - (void)viewDidLoad
 {
     [super viewDidLoad];
     
-    [self setUpToolbarItems];
+    self.navigationItem.leftBarButtonItem = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemCancel target:self action:@selector(cancel:)];
+    self.navigationItem.rightBarButtonItem = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemDone target:self action:@selector(done:)];
     
-    // Fetch user albums and smart albums
-    PHFetchResult *smartAlbums = [PHAssetCollection fetchAssetCollectionsWithType:PHAssetCollectionTypeSmartAlbum subtype:PHAssetCollectionSubtypeAny options:nil];
-    PHFetchResult *userAlbums = [PHAssetCollection fetchAssetCollectionsWithType:PHAssetCollectionTypeAlbum subtype:PHAssetCollectionSubtypeAny options:nil];
-    self.fetchResults = @[smartAlbums, userAlbums];
+    [self setUpToolbarItems];
     
     [self updateAssetCollections];
     
-    // Register observer
-    [[PHPhotoLibrary sharedPhotoLibrary] registerChangeObserver:self];
+    self.tableView.rowHeight = 86;
+    [self.tableView registerClass:QBAlbumCell.class forCellReuseIdentifier:kAlbumCellIdentifier];
+    
+    [[AMPhotoLibrary sharedPhotoLibrary] registerChangeObserver:self];
+
 }
 
 - (void)viewWillAppear:(BOOL)animated
@@ -73,33 +82,17 @@ static CGSize CGSizeScale(CGSize size, CGFloat scale) {
     [self updateSelectionInfo];
 }
 
-- (void)dealloc
-{
-    // Deregister observer
-    [[PHPhotoLibrary sharedPhotoLibrary] unregisterChangeObserver:self];
-}
-
-
-#pragma mark - Storyboard
-
-- (void)prepareForSegue:(UIStoryboardSegue *)segue sender:(id)sender
-{
-    QBAssetsViewController *assetsViewController = segue.destinationViewController;
-    assetsViewController.imagePickerController = self.imagePickerController;
-    assetsViewController.assetCollection = self.assetCollections[self.tableView.indexPathForSelectedRow.row];
-}
-
 
 #pragma mark - Actions
 
-- (IBAction)cancel:(id)sender
+- (void)cancel:(id)sender
 {
     if ([self.imagePickerController.delegate respondsToSelector:@selector(qb_imagePickerControllerDidCancel:)]) {
         [self.imagePickerController.delegate qb_imagePickerControllerDidCancel:self.imagePickerController];
     }
 }
 
-- (IBAction)done:(id)sender
+- (void)done:(id)sender
 {
     if ([self.imagePickerController.delegate respondsToSelector:@selector(qb_imagePickerController:didFinishPickingAssets:)]) {
         [self.imagePickerController.delegate qb_imagePickerController:self.imagePickerController
@@ -151,43 +144,15 @@ static CGSize CGSizeScale(CGSize size, CGFloat scale) {
 
 - (void)updateAssetCollections
 {
-    // Filter albums
-    NSArray *assetCollectionSubtypes = self.imagePickerController.assetCollectionSubtypes;
-    NSMutableDictionary *smartAlbums = [NSMutableDictionary dictionaryWithCapacity:assetCollectionSubtypes.count];
-    NSMutableArray *userAlbums = [NSMutableArray array];
+    NSMutableArray<AMPhotoAlbum *> *mutArray = [NSMutableArray array];
     
-    for (PHFetchResult *fetchResult in self.fetchResults) {
-        [fetchResult enumerateObjectsUsingBlock:^(PHAssetCollection *assetCollection, NSUInteger index, BOOL *stop) {
-            PHAssetCollectionSubtype subtype = assetCollection.assetCollectionSubtype;
-            
-            if (subtype == PHAssetCollectionSubtypeAlbumRegular) {
-                [userAlbums addObject:assetCollection];
-            } else if ([assetCollectionSubtypes containsObject:@(subtype)]) {
-                if (!smartAlbums[@(subtype)]) {
-                    smartAlbums[@(subtype)] = [NSMutableArray array];
-                }
-                [smartAlbums[@(subtype)] addObject:assetCollection];
-            }
-        }];
-    }
-    
-    NSMutableArray *assetCollections = [NSMutableArray array];
-
-    // Fetch smart albums
-    for (NSNumber *assetCollectionSubtype in assetCollectionSubtypes) {
-        NSArray *collections = smartAlbums[assetCollectionSubtype];
+    [[AMPhotoLibrary sharedPhotoLibrary] enumerateAlbums:^(AMPhotoAlbum *album, BOOL *stop) {
+        [mutArray addObject:album];
+    } resultBlock:^(BOOL success, NSError *error) {
         
-        if (collections) {
-            [assetCollections addObjectsFromArray:collections];
-        }
-    }
-    
-    // Fetch user albums
-    [userAlbums enumerateObjectsUsingBlock:^(PHAssetCollection *assetCollection, NSUInteger index, BOOL *stop) {
-        [assetCollections addObject:assetCollection];
     }];
     
-    self.assetCollections = assetCollections;
+    self.photoAlbums = mutArray;
 }
 
 - (UIImage *)placeholderImageWithSize:(CGSize)size
@@ -269,125 +234,142 @@ static CGSize CGSizeScale(CGSize size, CGFloat scale) {
 
 - (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section
 {
-    return self.assetCollections.count;
+    return self.photoAlbums.count;
 }
 
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath
 {
-    QBAlbumCell *cell = [tableView dequeueReusableCellWithIdentifier:@"AlbumCell" forIndexPath:indexPath];
+    QBAlbumCell *cell = [tableView dequeueReusableCellWithIdentifier:kAlbumCellIdentifier];
     cell.tag = indexPath.row;
     cell.borderWidth = 1.0 / [[UIScreen mainScreen] scale];
     
     // Thumbnail
-    PHAssetCollection *assetCollection = self.assetCollections[indexPath.row];
-    
-    PHFetchOptions *options = [PHFetchOptions new];
-    
+    AMPhotoAlbum *album = self.photoAlbums[indexPath.row];
+        
     switch (self.imagePickerController.mediaType) {
         case QBImagePickerMediaTypeImage:
-            options.predicate = [NSPredicate predicateWithFormat:@"mediaType == %ld", PHAssetMediaTypeImage];
+            album.assetsFilterOption = kAMAssetsFilterOptionImage;
             break;
             
         case QBImagePickerMediaTypeVideo:
-            options.predicate = [NSPredicate predicateWithFormat:@"mediaType == %ld", PHAssetMediaTypeVideo];
+            album.assetsFilterOption = kAMAssetsFilterOptionVideo;
             break;
             
         default:
             break;
     }
     
-    PHFetchResult *fetchResult = [PHAsset fetchAssetsInAssetCollection:assetCollection options:options];
-    PHImageManager *imageManager = [PHImageManager defaultManager];
+    NSArray<AMPhotoAsset *> *fetchAssets = album.fetchAssets;
     
-    if (fetchResult.count >= 3) {
+    CGSize imageSize = CGSizeMake(60, 60);
+    
+    if (fetchAssets.count >= 3) {
         cell.imageView3.hidden = NO;
         
-        [imageManager requestImageForAsset:fetchResult[fetchResult.count - 3]
-                                targetSize:CGSizeScale(cell.imageView3.frame.size, [[UIScreen mainScreen] scale])
-                               contentMode:PHImageContentModeAspectFill
-                                   options:nil
-                             resultHandler:^(UIImage *result, NSDictionary *info) {
-                                 if (cell.tag == indexPath.row) {
-                                     cell.imageView3.image = result;
-                                 }
-                             }];
+        [AMPhotoAsset requestImage:fetchAssets[fetchAssets.count - 3]
+                     withImageType:AMAssetImageTypeAspectRatioThumbnail
+                         beforeRun:^(CGSize *targetSizePointer, AMAssetImageContentMode *contentModePointer, BOOL *shouldCachePointer) {
+                             *targetSizePointer = imageSize;
+                             *contentModePointer = AMAssetImageContentModeAspectFill;
+                         } imageResult:^(UIImage *image) {
+                             if (cell.tag == indexPath.row) {
+                                 cell.imageView3.image = image;
+                             }
+                         }];
+
     } else {
         cell.imageView3.hidden = YES;
     }
     
-    if (fetchResult.count >= 2) {
+    if (fetchAssets.count >= 2) {
         cell.imageView2.hidden = NO;
         
-        [imageManager requestImageForAsset:fetchResult[fetchResult.count - 2]
-                                targetSize:CGSizeScale(cell.imageView2.frame.size, [[UIScreen mainScreen] scale])
-                               contentMode:PHImageContentModeAspectFill
-                                   options:nil
-                             resultHandler:^(UIImage *result, NSDictionary *info) {
-                                 if (cell.tag == indexPath.row) {
-                                     cell.imageView2.image = result;
-                                 }
-                             }];
+        [AMPhotoAsset requestImage:fetchAssets[fetchAssets.count - 2]
+                     withImageType:AMAssetImageTypeAspectRatioThumbnail
+                         beforeRun:^(CGSize *targetSizePointer, AMAssetImageContentMode *contentModePointer, BOOL *shouldCachePointer) {
+                             *targetSizePointer = imageSize;
+                             *contentModePointer = AMAssetImageContentModeAspectFill;
+                         } imageResult:^(UIImage *image) {
+                             if (cell.tag == indexPath.row) {
+                                 cell.imageView2.image = image;
+                             }
+                         }];
+        
     } else {
         cell.imageView2.hidden = YES;
     }
     
-    if (fetchResult.count >= 1) {
-        [imageManager requestImageForAsset:fetchResult[fetchResult.count - 1]
-                                targetSize:CGSizeScale(cell.imageView1.frame.size, [[UIScreen mainScreen] scale])
-                               contentMode:PHImageContentModeAspectFill
-                                   options:nil
-                             resultHandler:^(UIImage *result, NSDictionary *info) {
-                                 if (cell.tag == indexPath.row) {
-                                     cell.imageView1.image = result;
-                                 }
-                             }];
+    if (fetchAssets.count >= 1) {
+        [AMPhotoAsset requestImage:fetchAssets[fetchAssets.count - 1]
+                     withImageType:AMAssetImageTypeAspectRatioThumbnail
+                         beforeRun:^(CGSize *targetSizePointer, AMAssetImageContentMode *contentModePointer, BOOL *shouldCachePointer) {
+                             *targetSizePointer = imageSize;
+                             *contentModePointer = AMAssetImageContentModeAspectFill;
+                         } imageResult:^(UIImage *image) {
+                             if (cell.tag == indexPath.row) {
+                                 cell.imageView1.image = image;
+                             }
+                         }];
     }
     
-    if (fetchResult.count == 0) {
+    if (fetchAssets.count == 0) {
         cell.imageView3.hidden = NO;
         cell.imageView2.hidden = NO;
         
         // Set placeholder image
-        UIImage *placeholderImage = [self placeholderImageWithSize:cell.imageView1.frame.size];
+        UIImage *placeholderImage = [self placeholderImageWithSize:imageSize];
         cell.imageView1.image = placeholderImage;
         cell.imageView2.image = placeholderImage;
         cell.imageView3.image = placeholderImage;
     }
     
     // Album title
-    cell.titleLabel.text = assetCollection.localizedTitle;
+    cell.titleLabel.text = album.title;
     
     // Number of photos
-    cell.countLabel.text = [NSString stringWithFormat:@"%lu", (long)fetchResult.count];
+    cell.countLabel.text = [NSString stringWithFormat:@"%lu", (long)fetchAssets.count];
     
     return cell;
 }
 
+- (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
+    UICollectionViewFlowLayout *flowLayout = [[UICollectionViewFlowLayout alloc]init];
+    flowLayout.minimumLineSpacing = 2;
+    flowLayout.minimumInteritemSpacing = 2;
+    flowLayout.itemSize = CGSizeMake(77.5, 77.5);
+    flowLayout.scrollDirection = UICollectionViewScrollDirectionVertical;
+    flowLayout.sectionInset = UIEdgeInsetsMake(2, 0, 2, 0);
+    
+    QBAssetsViewController *assetsViewController = [[QBAssetsViewController alloc] initWithCollectionViewLayout:flowLayout];
+    assetsViewController.imagePickerController = self.imagePickerController;
+    assetsViewController.photoAlbum = self.photoAlbums[indexPath.row];
+    [self.navigationController pushViewController:assetsViewController animated:YES];
+}
 
-#pragma mark - PHPhotoLibraryChangeObserver
 
-- (void)photoLibraryDidChange:(PHChange *)changeInstance
-{
-    dispatch_async(dispatch_get_main_queue(), ^{
-        // Update fetch results
-        NSMutableArray *fetchResults = [self.fetchResults mutableCopy];
-        
-        [self.fetchResults enumerateObjectsUsingBlock:^(PHFetchResult *fetchResult, NSUInteger index, BOOL *stop) {
-            PHFetchResultChangeDetails *changeDetails = [changeInstance changeDetailsForFetchResult:fetchResult];
-            
-            if (changeDetails) {
-                [fetchResults replaceObjectAtIndex:index withObject:changeDetails.fetchResultAfterChanges];
-            }
-        }];
-        
-        if (![self.fetchResults isEqualToArray:fetchResults]) {
-            self.fetchResults = fetchResults;
-            
-            // Reload albums
+#pragma mark - AMPhotoLibraryChangeObserver
+
+- (void)photoLibraryDidChange:(AMPhotoChange *)changeInstance {
+    NSMutableArray<AMPhotoAlbum *> *photoAlbums = [self.photoAlbums mutableCopy];
+    
+    __block BOOL changed = NO;
+    [photoAlbums enumerateObjectsUsingBlock:^(AMPhotoAlbum * _Nonnull album, NSUInteger idx, BOOL * _Nonnull stop) {
+        AMPhotoChangeDetails *detail = [changeInstance changeDetailsForObject:album];
+        if (nil != detail && detail.objectWasChanged) {
+            [photoAlbums replaceObjectAtIndex:idx withObject:detail.objectAfterChanges];
+            changed = YES;
+        }
+    }];
+    
+    if (changed) {
+        dispatch_async(dispatch_get_main_queue(), ^{
+            self.photoAlbums = photoAlbums;
             [self updateAssetCollections];
             [self.tableView reloadData];
-        }
-    });
+        });
+    }
+    
 }
+
 
 @end

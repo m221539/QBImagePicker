@@ -8,9 +8,9 @@
 
 #import <UIKit/UIKit.h>
 
-IB_DESIGNABLE
+
 @interface QBSlomoIconView : UIView
 
-@property (nonatomic, strong) IBInspectable UIColor *iconColor;
+@property (nonatomic, strong) UIColor *iconColor;
 
 @end
